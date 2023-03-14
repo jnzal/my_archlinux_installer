@@ -1,0 +1,123 @@
+echo "write user id"
+#
+read userid
+#
+#
+echo "make pacman-mirrorlist update hook"
+#
+mkdir /etc/pacman.d/hooks/
+cp upd_mirlst.hook /etc/pacman.d/hooks/
+cp upd_mirlst /etc/pacman.d/hooks/
+#
+#
+echo "pacman -S packages"
+#
+pacman -S --noconfirm  networkmanager grub efibootmgr pulseaudio pulseaudio-alsa xorg xorg-xinit xorg-server xfce4 lightdm lightdm-gtk-greeter ntfs-3g python-pip acpi acpi_call acpid base-devel firefox-developer-edition gnome-disk-utility jupyter-notebook jupyter-notebook-shim jupyter-widgetsnbextension network-manager-applet os-prober qbittorrent redshift telegram-desktop tk ufw unrar viewnior vlc xed 
+pacman -S --noconfirm thunar-archive-plugin file-roller engrampa ark xarchiver xfce4-pulseaudio-plugin xfce4-whiskermenu-plugin wget git lsb-release evince neofetch xfce4-taskmanager unclutter
+#
+#
+echo "if you want to install latex packages, write True, otherwise write false"
+#
+read latex_var
+if $latex_var; then
+    pacman -S texinfo texlive-bibtexextra texlive-bin texlive-core texlive-fontsextra texlive-langextra texlive-latexextra texlive-science texmaker
+fi
+#
+#
+echo "/etc/locale.gen"
+#
+echo 'en_US.UTF-8 UTF-8' > /etc/locale.gen
+#
+#
+echo "locale-gen"
+#
+locale-gen
+echo "LANG=en_US.UTF-8" > /etc/locale.conf
+#
+#
+echo "set localtime to Amman"
+#
+ln -sf /usr/share/zoneinfo/Asia/Amman /etc/localtime
+hwclock --systohc --utc
+#
+#
+echo "chack time"
+#
+date
+sleep 10
+#
+#
+echo "set Arch as hostname"
+#
+echo Arch > /etc/hostname
+#
+#
+echo "edit /etc/hosts"
+#
+echo "127.0.0.1        localhost" >> /etc/hosts
+echo "::1              localhost" >> /etc/hosts
+echo "127.0.1.1        Arch" >> /etc/hosts
+#
+#
+echo "make /etc/vconsole.conf file"
+#
+echo "KEYMAP=us" >> /etc/vconsole.conf
+echo "FONT=tcvn8x16" >> /etc/vconsole.conf
+#
+#
+echo "enable networkmanager"
+#
+systemctl enable NetworkManager
+#
+#
+echo "enter root password"
+#
+passwd
+#
+#
+echo "grub install"
+#
+grub-install --target=x86_64-efi --bootloader-id=G --efi-directory=/boot/efi --removable
+grub-mkconfig -o /boot/grub/grub.cfg
+#
+#
+echo "creating account"
+#
+useradd -m -g users -G wheel -s /bin/zsh $userid
+#
+#
+echo "write password"
+#
+passwd $userid
+#
+#
+echo "remove the sign # from # %wheel ALL=(ALL) ALL, after 10 sec"
+#
+sleep 10
+EDITOR=nano visudo
+#
+#
+echo "enabling DE"
+#
+echo "exec startxfce4" > /home/$userid/.xinitrc
+systemctl enable lightdm
+#
+#
+echo "install oh-my-zsh and enable it"
+#
+sh -c "$(wget https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh -O -)"
+#
+#
+echo "pip stuff"
+#
+pip install numpy pandas
+#
+#
+echo "setting journalctl size limit at 50M"
+#
+echo "SystemMaxUse=50M" >> /etc/systemd/journald.conf
+#
+#
+echo "type : exit, umount -R, and reboot"
+#
+exit
