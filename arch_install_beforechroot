@@ -1,0 +1,131 @@
+echo "if network isnt connected, press ctrl+c and connect it"
+#
+sleep 2
+ping -c3 archlinux.org
+#
+#
+echo "lsblk"
+#
+lsblk
+sleep 2
+#
+#
+echo "write the disk name"
+#
+read disk_name
+#
+#
+echo "partitioning"
+#
+sleep 3
+cfdisk $disk_name
+#
+#
+echo "write the root partition"
+#
+read root_par
+#
+#
+echo "write the home partition"
+#
+read home_par
+#
+#
+echo "write the uefi partition"
+#
+read efi_par
+#
+#
+echo "write swap partition"
+#
+read swap_par
+#
+#
+echo "formattiong partitions"
+#
+echo "if you want to format efi partition, write true"
+#
+sleep 2
+read efi_par_for
+if $efi_par_for; then
+    mkfs.fat -F32 $efi_par
+fi
+#
+#
+echo "if you want to format root partition then write true"
+#
+sleep 2
+read root_par_for
+if $root_par_for; then
+    mkfs.ext4 $root_par
+fi
+#
+#
+echo "if you want to format home partition then write True"
+#
+sleep 2
+read home_par_for
+if $home_par_for; then
+    mkfs.ext4 $home_par
+fi
+#
+#
+echo "mounting root, home, efi partitions"
+#
+mount $root_par /mnt
+mkdir /mnt/home
+mount $home_par /mnt/home
+sleep 1
+#
+#
+echo "make /mnt/boot"
+#
+mkdir /mnt/boot
+mount $efi_par /mnt/boot
+#
+#
+echo "copying install script to the installation root"
+#
+cp -r /arch_instl /mnt
+#
+#
+echo "check lsblk, press ctrl+c to cancel, you have 10 sec"
+#
+lsblk
+sleep 4
+#
+#
+echo "write true to update databases and keyrings if the iso file is old"
+read old
+#
+if $old; then
+    pacman -Sy --noconfirm --needed archlinux-keyring
+fi
+#
+#
+echo "pacstraping"
+#
+pacstrap -i /mnt base linux linux-firmware sudo nano zsh linux-headers
+#
+#
+#
+echo "making swap and fstab file"
+#
+mkswap $swap_par
+swapon $swap_par
+genfstab -U -p /mnt >> /mnt/etc/fstab
+#
+#
+echo "arch-chrooting"
+#
+arch-chroot /mnt /bin/zsh /arch_instl/arch_install_chroot
+#
+#
+# after exiting chroot
+umount -R /mnt
+#
+echo 'write true to reboot'
+read reb
+if $reb; then
+    reboot
+fi

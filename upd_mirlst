@@ -1,0 +1,12 @@
+#!/bin/python
+import os
+import sys
+import fileinput
+
+if os.path.exists('/etc/pacman.d/mirrorlist.pacnew'):
+    for line in fileinput.input('/etc/pacman.d/mirrorlist.pacnew', inplace=1):
+        sys.stdout.write(line.replace('#Server', 'Server'))
+    if os.path.exists('/etc/pacman.d/mirrorlist'):
+        os.remove('/etc/pacman.d/mirrorlist')
+    os.rename('/etc/pacman.d/mirrorlist.pacnew', '/etc/pacman.d/mirrorlist')
+

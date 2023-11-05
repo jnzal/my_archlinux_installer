@@ -1,0 +1,176 @@
+echo "write user id"
+#
+read userid
+#
+#
+echo "make pacman-mirrorlist update hooks"
+#
+mkdir /etc/pacman.d/hooks/
+cp /arch_instl/upd_mirlst.hook /etc/pacman.d/hooks/
+cp /arch_instl/upd_mirlst /etc/pacman.d/hooks/
+#
+#
+#
+echo "pacman -S packages"
+#
+pacman -Syu --noconfirm - < /arch_instl/essential
+
+#
+echo 'if you want to install xorg write true'
+read xorg
+if $xorg; then
+    pacman -Syu --noconfirm - < /arch_instl/xorg
+    echo "enabling DE"
+    #
+    systemctl enable lightdm
+    echo "under [Seat:*], write your userid in autologin-user=username"
+    sleep 2
+    nano /etc/lightdm/lightdm.conf
+    echo 'if you want to install xfce4 write true'
+    read xfce
+    if $xfce; then
+        pacman -Syu --noconfirm - < /arch_instl/xfce4
+        echo "exec startxfce4" > /home/$userid/.xinitrc
+    fi
+#
+    echo 'if you want to install i3 write true'
+    read i3_var
+    if $i3_var; then
+        pacman -Syu --noconfirm - < /arch_instl/i3
+        mkdir -p /home/$userid/.config/i3
+        mkdir -p /home/$userid/.config/i3status
+        cp /arch_instl/i3_config /home/$userid/.config/i3/config
+        cp /arch_instl/i3status_config /home/$userid/.config/i3status/config
+    fi
+#
+    echo 'if you want to install jupyter write true'
+    read jupyter
+    if $jupyter; then
+        pacman -Syu --noconfirm - < /arch_instl/jupyter
+    fi
+#
+    echo 'if you want to install latex write true'
+    read latex
+    if $latex; then
+        pacman -Syu --noconfirm - < /arch_instl/latex
+    fi
+fi
+#
+#
+echo "/etc/locale.gen"
+#
+echo 'en_US.UTF-8 UTF-8' > /etc/locale.gen
+#
+#
+echo "locale-gen"
+#
+locale-gen
+echo "LANG=en_US.UTF-8" > /etc/locale.conf
+#
+#
+echo "set localtime to Amman"
+#
+ln -sf /usr/share/zoneinfo/Asia/Amman /etc/localtime
+hwclock --systohc --utc
+#
+#
+echo "check time"
+#
+date
+sleep 1
+#
+#
+echo "set Arch as hostname"
+#
+echo Arch > /etc/hostname
+#
+#
+echo "edit /etc/hosts"
+#
+echo "127.0.0.1        localhost" >> /etc/hosts
+echo "::1              localhost" >> /etc/hosts
+echo "127.0.1.1        Arch" >> /etc/hosts
+#
+#
+echo "make /etc/vconsole.conf file"
+#
+echo "KEYMAP=us" >> /etc/vconsole.conf
+echo "FONT=tcvn8x16" >> /etc/vconsole.conf
+mkinitcpio -P
+#
+#
+echo "enable networkmanager"
+#
+systemctl enable NetworkManager
+#
+#
+echo "enter root password"
+#
+passwd
+#
+#
+echo "creating account"
+#
+groupadd -r autologin
+groupadd -r nopasswdlogin
+useradd -mG wheel,autologin,nopasswdlogin -g users -s /bin/zsh $userid
+#
+#
+echo "write password"
+#
+passwd $userid
+#
+#
+echo "remove the sign # from # %wheel ALL=(ALL) ALL, after 10 sec"
+#
+sleep 3
+EDITOR=nano visudo
+#
+#
+echo "grub install"
+#
+grub-install --target=x86_64-efi --bootloader-id=G --efi-directory=/boot --removable
+grub-mkconfig -o /boot/grub/grub.cfg
+#
+#
+echo "install oh-my-zsh and enable it"
+#
+sh -c "$(wget https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh -O -)"
+#
+#
+echo "pip stuff"
+#
+sudo -u $userid pip install -r /arch_instl/pip_instl
+#
+#
+echo "setting journalctl size limit at 50M"
+#
+echo "SystemMaxUse=50M" >> /etc/systemd/journald.conf
+#
+#
+echo "write true if you want to install AUR helper 'paru'"
+read paru
+if $paru; then
+    sudo -u $userid git clone https://aur.archlinux.org/paru-bin.git /home/$userid/paru
+    cd /home/$userid/paru
+    sudo -u $userid makepkg -si
+    sudo -u $userid paru -S mkinitcpio-firmware
+#
+#
+    echo "write true if you want to install wps"
+    read wps
+    if $wps; then
+        sudo -u $userid paru -S ttf-ms-fonts ttf-wps-fonts wps-office wps-office-fonts libtiff5
+    fi
+#
+    echo "write true if you want to install download manager"
+    read xdman
+    if $xdman; then
+        sudo -u $userid paru -S xdman
+    fi
+fi
+#
+#
+echo "exiting and umounting"
+#
+exit
