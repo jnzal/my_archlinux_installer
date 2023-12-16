@@ -1,176 +1,160 @@
-echo "write user id"
-#
-read userid
-#
-#
-echo "make pacman-mirrorlist update hooks"
-#
-mkdir /etc/pacman.d/hooks/
-cp /arch_instl/upd_mirlst.hook /etc/pacman.d/hooks/
-cp /arch_instl/upd_mirlst /etc/pacman.d/hooks/
-#
-#
-#
-echo "pacman -S packages"
-#
-pacman -Syu --noconfirm - < /arch_instl/essential
+#!/bin/python
+import os
+from time import sleep
 
-#
-echo 'if you want to install xorg write true'
-read xorg
-if $xorg; then
-    pacman -Syu --noconfirm - < /arch_instl/xorg
-    echo "enabling DE"
-    #
-    systemctl enable lightdm
-    echo "under [Seat:*], write your userid in autologin-user=username"
-    sleep 2
-    nano /etc/lightdm/lightdm.conf
-    echo 'if you want to install xfce4 write true'
-    read xfce
-    if $xfce; then
-        pacman -Syu --noconfirm - < /arch_instl/xfce4
-        echo "exec startxfce4" > /home/$userid/.xinitrc
-    fi
-#
-    echo 'if you want to install i3 write true'
-    read i3_var
-    if $i3_var; then
-        pacman -Syu --noconfirm - < /arch_instl/i3
-        mkdir -p /home/$userid/.config/i3
-        mkdir -p /home/$userid/.config/i3status
-        cp /arch_instl/i3_config /home/$userid/.config/i3/config
-        cp /arch_instl/i3status_config /home/$userid/.config/i3status/config
-    fi
-#
-    echo 'if you want to install jupyter write true'
-    read jupyter
-    if $jupyter; then
-        pacman -Syu --noconfirm - < /arch_instl/jupyter
-    fi
-#
-    echo 'if you want to install latex write true'
-    read latex
-    if $latex; then
-        pacman -Syu --noconfirm - < /arch_instl/latex
-    fi
-fi
-#
-#
-echo "/etc/locale.gen"
-#
-echo 'en_US.UTF-8 UTF-8' > /etc/locale.gen
-#
-#
-echo "locale-gen"
-#
-locale-gen
-echo "LANG=en_US.UTF-8" > /etc/locale.conf
-#
-#
-echo "set localtime to Amman"
-#
-ln -sf /usr/share/zoneinfo/Asia/Amman /etc/localtime
-hwclock --systohc --utc
-#
-#
-echo "check time"
-#
-date
-sleep 1
-#
-#
-echo "set Arch as hostname"
-#
-echo Arch > /etc/hostname
-#
-#
-echo "edit /etc/hosts"
-#
-echo "127.0.0.1        localhost" >> /etc/hosts
-echo "::1              localhost" >> /etc/hosts
-echo "127.0.1.1        Arch" >> /etc/hosts
-#
-#
-echo "make /etc/vconsole.conf file"
-#
-echo "KEYMAP=us" >> /etc/vconsole.conf
-echo "FONT=tcvn8x16" >> /etc/vconsole.conf
-mkinitcpio -P
-#
-#
-echo "enable networkmanager"
-#
-systemctl enable NetworkManager
-#
-#
-echo "enter root password"
-#
-passwd
-#
-#
-echo "creating account"
-#
-groupadd -r autologin
-groupadd -r nopasswdlogin
-useradd -mG wheel,autologin,nopasswdlogin -g users -s /bin/zsh $userid
-#
-#
-echo "write password"
-#
-passwd $userid
-#
-#
-echo "remove the sign # from # %wheel ALL=(ALL) ALL, after 10 sec"
-#
-sleep 3
-EDITOR=nano visudo
-#
-#
-echo "grub install"
-#
-grub-install --target=x86_64-efi --bootloader-id=G --efi-directory=/boot --removable
-grub-mkconfig -o /boot/grub/grub.cfg
-#
-#
-echo "install oh-my-zsh and enable it"
-#
-sh -c "$(wget https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh -O -)"
-#
-#
-echo "pip stuff"
-#
-sudo -u $userid pip install -r /arch_instl/pip_instl
-#
-#
-echo "setting journalctl size limit at 50M"
-#
-echo "SystemMaxUse=50M" >> /etc/systemd/journald.conf
-#
-#
-echo "write true if you want to install AUR helper 'paru'"
-read paru
-if $paru; then
-    sudo -u $userid git clone https://aur.archlinux.org/paru-bin.git /home/$userid/paru
-    cd /home/$userid/paru
-    sudo -u $userid makepkg -si
-    sudo -u $userid paru -S mkinitcpio-firmware
-#
-#
-    echo "write true if you want to install wps"
-    read wps
-    if $wps; then
-        sudo -u $userid paru -S ttf-ms-fonts ttf-wps-fonts wps-office wps-office-fonts libtiff5
-    fi
-#
-    echo "write true if you want to install download manager"
-    read xdman
-    if $xdman; then
-        sudo -u $userid paru -S xdman
-    fi
-fi
+userid = input("write user id: ")
+
+print("enter root password")
+os.system('passwd')
+
+print("creating account")
+os.system('groupadd -r autologin')
+os.system('groupadd -r nopasswdlogin')
+os.system(f'useradd -mG wheel,autologin,nopasswdlogin -g users -s /bin/zsh {userid}')
+
+print("write the user password")
+os.system(f'passwd {userid}')
+
+print("make pacman-mirrorlist update hooks")
+os.system('mkdir -p /etc/pacman.d/hooks/')
+os.system('cp /arch_instl/conf/upd_mirlst.hook /etc/pacman.d/hooks/')
+os.system('cp /arch_instl/conf/upd_mirlst /etc/pacman.d/hooks/')
+
+print("pacman -S packages")
+os.system('pacman -Syu --noconfirm --needed - < /arch_instl/pack/essential')
+
+xorg = input('if you want to install xorg write true: ')
+if xorg.lower() == 'true':
+    os.system('pacman -Syu --noconfirm --needed - < /arch_instl/pack/xorg')
+    print("enabling DE")
+    
+    os.system('systemctl enable lightdm')
+    autologin = input('if you want to enable autologin write true: ')
+    
+    if autologin.lower():
+        print("under [Seat:*], write your userid in autologin-user=username")
+        sleep(4)
+        os.system('nano /etc/lightdm/lightdm.conf')
+    
+    xfce = input('if you want to install xfce4 write true: ')
+    
+    if xfce.lower() == 'true':
+        os.system('pacman -Syu --noconfirm --needed - < /arch_instl/pack/xfce4')
+        os.system('echo "exec startxfce4" > /home/$userid/.xinitrc')
+        os.system('cp /arch_instl/conf/xfce4 /home/$userid/.config/')
+        os.system('cp /arch_instl/conf/Thunar /home/$userid/.config/')
+
+
+    i3_var = input('if you want to install i3 write true: ')
+    if i3_var.lower() == 'true':
+        os.system('pacman -Syu --noconfirm --needed - < /arch_instl/pack/i3')
+        os.system('mkdir -p /home/$userid/.config/i3')
+        os.system('mkdir -p /home/$userid/.config/i3status')
+        os.system('cp /arch_instl/conf/i3_config /home/$userid/.config/i3/config')
+        os.system('cp /arch_instl/conf/i3status_config /home/$userid/.config/i3status/config')
+
+    jupyter = input('if you want to install jupyter write true: ')
+    if jupyter.lower() == 'true':
+        os.system('pacman -Syu --noconfirm --needed - < /arch_instl/jupyter')
+
+    latex = input('if you want to install latex write true: ')
+    if latex.lower() == 'true':
+        os.system('pacman -Syu --noconfirm --needed - < /arch_instl/latex')
+
+print("locale-gen")
+os.system("echo 'en_US.UTF-8 UTF-8' > /etc/locale.gen")
+os.system('locale-gen')
+os.system('echo "LANG=en_US.UTF-8" > /etc/locale.conf')
+
+print("set localtime to Amman")
+os.system('ln -sf /usr/share/zoneinfo/Asia/Baghdad /etc/localtime')
+os.system('hwclock --systohc --utc')
+
+print("check time")
+os.system('date')
+sleep(5)
+
+print("set Arch as hostname")
+os.system(f'echo {userid} > /etc/hostname')
+
+#echo "edit /etc/hosts"
+hosts = '''127.0.0.1        localhost
+::1              localhost
+127.0.1.1        $userid'''
+os.system(f'echo {hosts} >> /etc/hosts')
+
+#echo "make /etc/vconsole.conf file"
+KEYMAP = '''KEYMAP=us
+FONT=tcvn8x16'''
+os.system(f'echo {KEYMAP} >> /etc/vconsole.conf')
+os.system('mkinitcpio -P')
+
+#echo "enable networkmanager"
+os.system('systemctl enable NetworkManager')
+
+print("remove the sign # from # %wheel ALL=(ALL) ALL, after 10 sec")
+sleep(10)
+os.system('EDITOR=nano visudo')
+
+grubc = input('if you want to use GRUB: ')
+if grubc.lower() == 'true':
+    print("grub install")
+    os.system('pacman -Syu --needed --noconfirm grub')
+    os.system('grub-install --target=x86_64-efi --bootloader-id=G --efi-directory=/boot --removable')
+    os.system('grub-mkconfig -o /boot/grub/grub.cfg')
+
+
+refindc = input('if you want to use rEFInd write true: ')
+
+if refindc.lower() == 'true':
+    os.system('pacman -Syu --needed --noconfirm refind')
+    os.system('refind-install ')
+    os.system('ls /boot/EFI')
+    refindf = input("write the rEFInd or BOOT folder from /boot: ")
+#    print('change the volume to the EFI partition UUID, and PARTUUID to the UUID of the root')
+#    sleep(5)
+#    os.system(f'nano /boot/EFI/{refindf}/refind.conf')
+    os.system(f'cp /arch_instl/conf/refind.conf /boot/EFI/{refindf}/')
+
+
+print("install oh-my-zsh and enable it")
+sleep(3)
+os.system(f'sh -c "$(wget https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh -O -)" ')
+os.system(f'cp -r ~/.oh-my-zsh /home/{userid}/')
+os.system(f'chown {userid}:wheel -R /home/{userid}/.oh-my-zsh')
+os.system(f'cp ~/.zshrc /home/{userid}/ ')
+os.system(f'chown {userid}:wheel /home/{userid}/.zshrc')
+
+pipf = input("write if you want to install some pip packages: ")
+if pipf.lower() == 'true':
+    os.system('pip install -r /arch_instl/pack/pip_instl --break-system-packages ')
+
+#echo "setting journalctl size limit at 50M"
+os.system('echo "SystemMaxUse=50M" >> /etc/systemd/journald.conf')
+
+paru = input("write true if you want to install AUR helper 'paru': ")
+if paru.lower() == 'true':
+    os.system(f'sudo -u {userid} git clone https://aur.archlinux.org/paru-bin.git /home/{userid}/paru')
+    os.system(f'cd /home/{userid}/paru')
+    os.system(f'sudo -u {userid} makepkg -si')
+    os.system(f'sudo -u {userid} paru -S mkinitcpio-firmware')
+
+    wps = input("write true if you want to install wps: ")
+    if wps.lower() == 'true':
+        os.system(f'sudo -u {userid} paru -S ttf-ms-fonts ttf-wps-fonts wps-office wps-office-fonts libtiff5')
+
+    xdman = input("write true if you want to install download manager: ")
+    if xdman.lower() == 'true':
+        os.system(f'sudo -u {userid} paru -S xdman')
+
+else:
+    firmf = input('if you want to install some mkinitcpio firmwares write true: ')
+    if firmf.lower() == 'true':
+        os.system(f'sudo -u {userid} git clone https://aur.archlinux.org/mkinitcpio-firmware.git /home/{userid}/firm')
+        os.system(f'cd /home/{userid}/firm')
+        os.system(f'sudo -u {userid} makepkg -si')
 #
 #
-echo "exiting and umounting"
+print("exiting and umounting")
 #
-exit
+os.system('exit')

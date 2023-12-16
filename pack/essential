@@ -1,5 +1,4 @@
 networkmanager
-grub
 efibootmgr
 python-pip
 base-devel

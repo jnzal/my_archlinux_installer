@@ -1,131 +1,84 @@
-echo "if network isnt connected, press ctrl+c and connect it"
-#
-sleep 2
-ping -c3 archlinux.org
-#
-#
-echo "lsblk"
-#
-lsblk
-sleep 2
-#
-#
-echo "write the disk name"
-#
-read disk_name
-#
-#
-echo "partitioning"
-#
-sleep 3
-cfdisk $disk_name
-#
-#
-echo "write the root partition"
-#
-read root_par
-#
-#
-echo "write the home partition"
-#
-read home_par
-#
-#
-echo "write the uefi partition"
-#
-read efi_par
-#
-#
-echo "write swap partition"
-#
-read swap_par
-#
-#
-echo "formattiong partitions"
-#
-echo "if you want to format efi partition, write true"
-#
-sleep 2
-read efi_par_for
-if $efi_par_for; then
-    mkfs.fat -F32 $efi_par
-fi
-#
-#
-echo "if you want to format root partition then write true"
-#
-sleep 2
-read root_par_for
-if $root_par_for; then
-    mkfs.ext4 $root_par
-fi
-#
-#
-echo "if you want to format home partition then write True"
-#
-sleep 2
-read home_par_for
-if $home_par_for; then
-    mkfs.ext4 $home_par
-fi
-#
-#
-echo "mounting root, home, efi partitions"
-#
-mount $root_par /mnt
-mkdir /mnt/home
-mount $home_par /mnt/home
-sleep 1
-#
-#
-echo "make /mnt/boot"
-#
-mkdir /mnt/boot
-mount $efi_par /mnt/boot
-#
-#
-echo "copying install script to the installation root"
-#
-cp -r /arch_instl /mnt
-#
-#
-echo "check lsblk, press ctrl+c to cancel, you have 10 sec"
-#
-lsblk
-sleep 4
-#
-#
-echo "write true to update databases and keyrings if the iso file is old"
-read old
-#
-if $old; then
-    pacman -Sy --noconfirm --needed archlinux-keyring
-fi
-#
-#
-echo "pacstraping"
-#
-pacstrap -i /mnt base linux linux-firmware sudo nano zsh linux-headers
-#
-#
-#
-echo "making swap and fstab file"
-#
-mkswap $swap_par
-swapon $swap_par
-genfstab -U -p /mnt >> /mnt/etc/fstab
-#
-#
-echo "arch-chrooting"
-#
-arch-chroot /mnt /bin/zsh /arch_instl/arch_install_chroot
-#
-#
+#!/bin/python
+import os
+from time import sleep
+# activate network
+print('activate network')
+sleep(3)
+
+os.system('iwctl')
+
+# check network
+print("if network isnt connected, press ctrl+c and connect it")
+os.system('ping -c3 archlinux.org')
+
+print("check lsblk")
+os.system('lsblk')
+
+disk_name = input("write the disk name as /dev/sdX: ")
+
+print("partitioning")
+sleep(4)
+os.system(f'cfdisk {disk_name}')
+
+root_par = input("write the root partition as /dev/sdXY: ")
+
+home_par = input("write the home partition as /dev/sdXY: ")
+
+efi_par = input("write the uefi partition as /dev/sdXY: ")
+
+swap_par = input("write swap partition as /dev/sdXY: ")
+
+print("formattiong partitions")
+efi_par_for = input("if you want to format efi partition, write true: ")
+
+if efi_par_for.lower() == 'true':
+    os.system(f'mkfs.fat -F32 {efi_par}')
+    os.system(f'fatlabel {efi_par} ARCH-BOOT')
+
+root_par_for = input("if you want to format root partition then write true: ")
+if root_par_for.lower() == 'true':
+    os.system(f'mkfs.ext4 {root_par}')
+    os.system(f'e2label {root_par} ARCH-ROOT')
+
+home_par_for = input("if you want to format home partition then write true: ")
+if home_par_for.lower() == 'true':
+    os.system(f'mkfs.ext4 {home_par}')
+
+#echo "mounting root, home, efi partitions"
+os.system(f'mount {root_par} /mnt')
+os.system('mkdir -p /mnt/home')
+os.system(f'mount {home_par} /mnt/home')
+
+#echo "make /mnt/boot"
+os.system('mkdir -p /mnt/boot')
+os.system(f'mount {efi_par} /mnt/boot')
+
+#echo "copying install script to the installation root"
+os.system('cp -r /arch_instl /mnt')
+
+print("check lsblk, press ctrl+c to cancel, you have 10 sec")
+os.system('lsblk')
+sleep(4)
+
+##old = input("write true to update databases and keyrings if the iso file is old: ")
+##if old.lower() == 'true':
+os.system('pacman -Sy --noconfirm --needed archlinux-keyring')
+
+print("start pacstraping")
+os.system('pacstrap -i /mnt base linux linux-firmware sudo nano zsh linux-headers python')
+
+#echo "making swap and fstab file"
+os.system(f'mkswap {swap_par} -L SWAP')
+os.system(f'swapon {swap_par}')
+os.system('genfstab -U -p /mnt >> /mnt/etc/fstab')
+
+
+print("arch-chrooting")
+os.system('arch-chroot /mnt /bin/python /arch_instl/arch_install_chroot')
+
 # after exiting chroot
-umount -R /mnt
-#
-echo 'write true to reboot'
-read reb
-if $reb; then
-    reboot
-fi
+os.system('umount -R /mnt')
+
+reboot = input('write true to reboot')
+if reboot.lower() == 'true':
+    os.system('reboot')
